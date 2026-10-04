@@ -99,7 +99,8 @@ body {
 // synchronously in the handler:
 //   * on iOS, sets navigator.audioSession to "playback" (iOS 17+) and plays a
 //     silent looping <audio>, so the ring/silent switch does not mute the game;
-//   * resumes every context that is not running.
+//   * resumes every context that is not running, and starts a one-sample
+//     silent buffer in each (iOS may not start a context on resume() alone).
 // window.totrAudioUnlocked turns true once a gesture has run them all;
 // core/audio.gd polls it and restarts the requested music then, so the menu
 // music starts on the first press instead of silently half-way through.
@@ -155,14 +156,24 @@ body {
 		}
 		if (tag.paused) { const p = tag.play(); if (p) { p.catch(() => {}); } }
 	}
+	function tick(c) {
+		try {
+			const src = c.createBufferSource();
+			src.buffer = c.createBuffer(1, 1, c.sampleRate || 22050);
+			src.connect(c.destination);
+			src.start(0);
+		} catch (e) { /* context closed */ }
+	}
 	function unlock(ev) {
 		if (ev && ev.isTrusted === false) { return; }
 		playbackSession();
 		if (ctxs.length > 0) { gestured = true; }
 		ctxs.forEach((c) => {
-			if (c.state !== 'running' && c.state !== 'closed') {
+			if (c.state === 'closed') { return; }
+			if (c.state !== 'running') {
 				const p = c.resume();
 				if (p) { p.then(update, () => {}); }
+				tick(c);
 			}
 		});
 		update();
@@ -182,7 +193,7 @@ body {
 		</script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12211228,"index.wasm":37686550},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12212628,"index.wasm":37686550},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 
 // Trick or Treat Rush: pick the phone or desktop pack before anything loads
 // (tools/web_build.py). Phones never download the desktop pack, and vice versa.
@@ -194,7 +205,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
   const phone = q === 'phone' || (q !== 'desktop' && (touchOnly || mobileUA));
   if (phone) {
     GODOT_CONFIG.mainPack = 'phone.pck';
-    GODOT_CONFIG.fileSizes['phone.pck'] = 9723964;
+    GODOT_CONFIG.fileSizes['phone.pck'] = 9725364;
     delete GODOT_CONFIG.fileSizes['index.pck'];
   }
 })();
