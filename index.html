@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="theme-color" content="#160c1f">
+		<title>Trick or Treat Rush</title>
+		<!-- Trick or Treat Rush web shell (web/shell.html, the Web preset's custom_html_shell;
+		     tools/web_build.py adds the phone/desktop pack picker after GODOT_CONFIG).
+		     The night-street palette (data/halloween/edition.json) so loading and the
+		     first frame read as one thing, in the Scareathon arcade iframe or alone.
+		     The page never zooms or scrolls; audio starts on the first tap. -->
+		<style>
+html, body, #canvas { margin: 0; padding: 0; border: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+	background: #160c1f;
+	color: #f6ecd9;
+	overflow: hidden;
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+	-webkit-tap-highlight-color: transparent;
+	overscroll-behavior: none;
+}
+#canvas { display: block; }
+#canvas:focus { outline: none; }
+#status {
+	position: absolute; inset: 0;
+	background: linear-gradient(#160c1f 0%, #241536 48%, #4a2d5e 80%, #8a3c2a 95%, #ff8a1f 100%);
+	display: flex; flex-direction: column; justify-content: center; align-items: center;
+	gap: 0.9rem;
+	visibility: hidden;
+	text-align: center;
+	padding: 1.5rem;
+	box-sizing: border-box;
+	font-family: 'Outfit', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+}
+#status-eyebrow {
+	font-size: 0.72rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+	color: #ff8a1f;
+}
+#status-title {
+	font-family: 'Baloo 2', 'Arial Rounded MT Bold', 'Avenir Next', system-ui, sans-serif;
+	font-weight: 800;
+	font-size: clamp(2.4rem, 10vw, 4.4rem);
+	line-height: 1;
+	text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+#status-tag { color: #cdb8e0; font-size: clamp(0.9rem, 3.6vw, 1.05rem); }
+#status-bar {
+	width: min(64vw, 300px); height: 10px; margin-top: 0.6rem;
+	border-radius: 999px; background: rgba(0, 0, 0, 0.4); overflow: hidden;
+	display: none;
+}
+#status-fill {
+	height: 100%; width: 0%;
+	background: linear-gradient(90deg, #ff8a1f, #ffd36a);
+	border-radius: 999px;
+	transition: width 0.2s ease-out;
+}
+#status-fill.indeterminate { width: 35%; animation: slide 1.2s ease-in-out infinite alternate; }
+@keyframes slide { from { margin-left: 0%; } to { margin-left: 65%; } }
+#status-notice {
+	display: none;
+	background: #f6ecd9; color: #2a1b2e;
+	border-radius: 18px; line-height: 1.45;
+	max-width: 30rem; padding: 1rem 1.25rem;
+	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.38);
+}
+#status-splash { display: none; }
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	</head>
+	<body>
+		<canvas id="canvas">Your browser does not support the canvas tag.</canvas>
+		<noscript>Trick or Treat Rush needs JavaScript.</noscript>
+		<div id="status">
+			<img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="index.png" alt="">
+			<div id="status-eyebrow">Maple Street, after dark</div>
+			<div id="status-title">Trick or Treat Rush</div>
+			<div id="status-tag">Only the candy you bring home counts.</div>
+			<div id="status-bar"><div id="status-fill"></div></div>
+			<div id="status-notice"></div>
+		</div>
+
+		<script>
+// Browsers start audio suspended until a gesture: keep every AudioContext the
+// engine makes and resume them on the first tap / click / key.
+(function () {
+	const AC = window.AudioContext || window.webkitAudioContext;
+	const ctxs = [];
+	if (AC) {
+		const Wrapped = function (...args) { const c = new AC(...args); ctxs.push(c); return c; };
+		Wrapped.prototype = AC.prototype;
+		window.AudioContext = Wrapped;
+		if (window.webkitAudioContext) { window.webkitAudioContext = Wrapped; }
+	}
+	const unlock = () => ctxs.forEach((c) => { if (c.state !== 'running' && c.state !== 'closed') { c.resume(); } });
+	['pointerdown', 'pointerup', 'touchend', 'keydown', 'click'].forEach((e) => document.addEventListener(e, unlock, true));
+}());
+		</script>
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12210636,"index.wasm":37686550},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+
+// Trick or Treat Rush: pick the phone or desktop pack before anything loads
+// (tools/web_build.py). Phones never download the desktop pack, and vice versa.
+(function () {
+  const q = new URLSearchParams(location.search).get('pack');
+  const touchOnly = matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;
+  const mobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const phone = q === 'phone' || (q !== 'desktop' && (touchOnly || mobileUA));
+  if (phone) {
+    GODOT_CONFIG.mainPack = 'phone.pck';
+    GODOT_CONFIG.fileSizes['phone.pck'] = 9723516;
+    delete GODOT_CONFIG.fileSizes['index.pck'];
+  }
+})();
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const overlay = document.getElementById('status');
+	const bar = document.getElementById('status-bar');
+	const fill = document.getElementById('status-fill');
+	const notice = document.getElementById('status-notice');
+	let initializing = true;
+	let mode = '';
+
+	function setMode(m) {
+		if (mode === m || !initializing) { return; }
+		if (m === 'hidden') { overlay.remove(); initializing = false; return; }
+		overlay.style.visibility = 'visible';
+		bar.style.display = m === 'progress' ? 'block' : 'none';
+		notice.style.display = m === 'notice' ? 'block' : 'none';
+		mode = m;
+	}
+
+	function fail(err) {
+		console.error(err);
+		const text = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Something went wrong loading the street.');
+		notice.textContent = '';
+		text.split('\n').forEach((line) => { notice.appendChild(document.createTextNode(line)); notice.appendChild(document.createElement('br')); });
+		setMode('notice');
+		initializing = false;
+	}
+
+	// Keep keyboard focus on the game after taps on the page.
+	document.addEventListener('pointerdown', () => {
+		const c = document.getElementById('canvas');
+		if (c && document.activeElement !== c) { c.focus(); }
+	}, true);
+	// The page itself never zooms (pinch, double-tap).
+	document.addEventListener('gesturestart', (e) => e.preventDefault());
+	document.addEventListener('dblclick', (e) => e.preventDefault());
+
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+	if (missing.length !== 0) {
+		fail('This browser is missing features the game needs:\n' + missing.join('\n') + '\nTry a current Chrome, Edge, Firefox or Safari.');
+		return;
+	}
+	setMode('progress');
+	engine.startGame({
+		onProgress: function (current, total) {
+			if (current > 0 && total > 0) {
+				fill.classList.remove('indeterminate');
+				fill.style.width = Math.min(100, (100 * current) / total).toFixed(1) + '%';
+			} else {
+				fill.classList.add('indeterminate');
+			}
+		},
+	}).then(() => setMode('hidden'), fail);
+}());
+		</script>
+	</body>
+</html>
+
