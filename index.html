@@ -193,7 +193,7 @@ body {
 		</script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12214628,"index.wasm":37686550},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12214612,"index.wasm":37686550},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 
 // Trick or Treat Rush: pick the phone or desktop pack before anything loads
 // (tools/web_build.py). Phones never download the desktop pack, and vice versa.
@@ -205,7 +205,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
   const phone = q === 'phone' || (q !== 'desktop' && (touchOnly || mobileUA));
   if (phone) {
     GODOT_CONFIG.mainPack = 'phone.pck';
-    GODOT_CONFIG.fileSizes['phone.pck'] = 9727364;
+    GODOT_CONFIG.fileSizes['phone.pck'] = 9727348;
     delete GODOT_CONFIG.fileSizes['index.pck'];
   }
 })();
